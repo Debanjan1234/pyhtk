@@ -3,9 +3,6 @@ from model import Model
 import util
 from util import log_write as log
 
-HVITE_CMD = 'HVite'
-#HVITE_CMD = '/u/arlo/bin/fast_htk/v0/HVite'
-
 class Decoder:
 
     def __init__(self, config, model=None):
@@ -44,20 +41,14 @@ class Decoder:
         self.word_mlf = '%s/words.mlf' %self.exp
         self.phone_mlf = '%s/phones.mlf' %self.exp
 
-        self.lm = '/u/dgillick/workspace/hmm/wsj0/wdnet_bigram'
-        #self.lm = '%s/lm' %model.exp
-        #self.lm = 'exp/lm/mix-lm'
-        n = 3
-        s = '20k' # '5k'
-        src = 'csr'
-        #self.lm = 'exp/lm/lm_%s_%s_nvp_%dgram/lm_%s_%s_nvp_%dgram.arpa' %(src, s, n, src, s, n)
+        #self.lm = '/u/dgillick/workspace/hmm/wsj0/wdnet_bigram'
+        self.lm = '%s/lm' %model.exp
 
-        #self.dict = '%s/decode_dict' %model.exp
-        self.dict = '/u/dgillick/workspace/hmm/wsj0/dict_5k'
-        #self.dict = 'exp/lm/lm_csr_%s_nvp_%dgram/lm_csr_%s_nvp.hdecode.dic' %(s, n, s)
+        self.dict = '%s/decode_dict' %model.exp
+        #self.dict = '/u/dgillick/workspace/hmm/wsj0/dict_5k'
         
         self.decode_func = 'hvite'
-        if self.decode_func == 'hvite': self.config_file = '/u/dgillick/workspace/hmm/htk_recipe/common/configcross'
+        if self.decode_func == 'hvite': self.config_file = '%s/configcross' %model.common
         else: self.config_file = '%s/config.hdecode' %model.common
        
     def test(self, gaussians=1, iter=8, mmi=False, output_dir=None):
@@ -79,12 +70,9 @@ class Decoder:
         if self.test_pipeline['test']:
             import dict_and_lm
             start_time = time.time()
-            #dict = model.orig_dict
             dict = self.dict
             num_utts, words = dict_and_lm.make_mlf_from_transcripts(model, dict, self.setup, self.data, self.word_mlf, self.mfc_list, skip_oov=True)
             log(self.logfh, 'wrote word mlf [%d utts] [%s]' %(num_utts, self.word_mlf))
-
-            #dict_and_lm.make_decode_dict(model.orig_dict, self.vocab, words)
 
             self.decode(model, self.mfc_list, self.word_mlf, self.lm, gaussians, iter, mmi, output_dir)
             total_time = time.time() - start_time
@@ -106,7 +94,7 @@ class Decoder:
         output_mlf = '%s/decoded.mlf' %output_dir
     
         def hvite(input, output):
-            cmd  = '%s -A -T 1 -l "*" -b silence ' %HVITE_CMD
+            cmd  = 'HVite -A -T 1 -l "*" -b silence '
             cmd += '-t %f ' %self.beam
             cmd += '-C %s ' %self.config_file
             cmd += '-H %s ' %model_file
@@ -183,12 +171,6 @@ class Decoder:
         raw_wer = 100 - float(re.findall(r'Acc=([0-9.]*)', os.popen(cmd.replace('-h ', '')).read())[0].split('=')[-1])
         return raw_wer
 
-        #cmd = 'python nist_score.py %s' %output_mlf
-        #nist_wer = float(re.findall(r'(\d+\.\d)%', os.popen(cmd).read())[0])
-        #sys.stderr.write('nist score [%1.2f]\n' %nist_wer)
-        #return nist_wer
-                         
-        ## Clean up
         os.system('rm -f %s/mfc.list.* %s/align.output.*' %(output_dir, output_dir))
 
 
