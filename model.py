@@ -220,8 +220,8 @@ class Model:
             import dict_and_lm
             train_vocab = '%s/vocab' %self.lm_dir
             lm_order = 2
-            target_ppl = 300
-            ppl = dict_and_lm.build_lm_from_mlf(self, self.word_mlf, self.train_dict, train_vocab, self.lm_dir, self.mmi_lm, lm_order, target_ppl)
+            target_ppl_ratio = 8
+            ppl = dict_and_lm.build_lm_from_mlf(self, self.word_mlf, self.train_dict, train_vocab, self.lm_dir, self.mmi_lm, lm_order, target_ppl_ratio)
             log(self.logfh, 'wrote lm for mmi [%s] training ppl [%1.2f]' %(self.mmi_lm, ppl))
 
             ## Create decoding lattices for every utterance

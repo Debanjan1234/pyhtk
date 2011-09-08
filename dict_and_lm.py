@@ -161,8 +161,17 @@ def build_lm_from_mlf(model, word_mlf, dictionary, vocab, lm_dir, lm, lm_order, 
     fh.close()
 
     ## Build a language model
-    cutoff, cutoff_min, cutoff_max = 10, 1, 10000
+    cutoff, cutoff_min, cutoff_max = 5, 1, 50
     iters, prev_cutoff = 0, 0
+
+    cmd = 'ngram-count -vocab %s -order %d -text %s -lm %s' %(vocab, lm_order, text_file, lm)
+    util.run(cmd, lm_dir)
+    cmd = 'ngram -order %d -lm %s -ppl %s -debug 0' %(lm_order, lm, text_file)
+    res = util.run(cmd, lm_dir)
+    ppl = float(os.popen('grep zeroprobs %s' %res).read().split()[5])
+    if not target_ppl_ratio: return ppl
+    util.log_write(model.logfh, '  cutoff [%d] gives ppl [%1.2f]' %(1, ppl))
+    target_ppl = ppl * target_ppl_ratio
 
     while True:
         iters += 1
@@ -174,7 +183,7 @@ def build_lm_from_mlf(model, word_mlf, dictionary, vocab, lm_dir, lm, lm_order, 
         ppl = float(os.popen('grep zeroprobs %s' %res).read().split()[5])
 
         if not target_ppl or abs(ppl - target_ppl) < 1: break
-        if  cutoff == prev_cutoff or iters > 10: break
+        if cutoff == prev_cutoff or iters > 10: break
         prev_cutoff = cutoff
         util.log_write(model.logfh, '  cutoff [%d] gives ppl [%1.2f]' %(cutoff, ppl))
 
