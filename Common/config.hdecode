@@ -1,0 +1,23 @@
+#HLANGMODFILTER = 'gunzip -c $.gz'
+HNETFILTER = 'gunzip -c < $.gz'
+HNETOFILTER = 'gzip -c > $.gz'
+RAWMITFORMAT   = T
+
+#HMMDEFOFILTER = '/bin/gzip -c > $.gz'
+#HMMDEFFILTER = '/bin/gunzip -c < $.gz'
+
+HPARM: TARGETKIND  = MFCC_0_D_A_Z
+
+GCFREQ = 50
+HLAT:TRACE  = 19
+HLVNET:TRACE = 1
+HLVREC:TRACE = 1
+HLVLM:TRACE = 1
+
+LATPRUNEBEAM    = 500.0
+MAXLMLA         = 3.0
+BUILDLATSENTEND = T
+FORCELATOUT = F
+
+STARTWORD      = <s>
+ENDWORD        = </s>

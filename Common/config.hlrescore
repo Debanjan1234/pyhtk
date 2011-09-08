@@ -1,0 +1,8 @@
+#HLANGMODFILTER = '/bin/gunzip -c $.gz'
+HNETFILTER = '/bin/gunzip -c < $.gz'
+HNETOFILTER = '/bin/gzip -c > $.gz'
+RAWMITFORMAT   = T
+
+HLRESCORE: FIXBADLATS = TRUE
+HLRESCORE: ENDWORD = </s>
+HLRESCORE: STARTWORD = <s>
