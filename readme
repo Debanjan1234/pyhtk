@@ -1,0 +1,28 @@
+-----------------------------------------------------------------------------------
+-- PYHTK                                                                         --
+-- A Python package for building GMM-HMM models for speech recognition using HTK --
+--                                                                               --
+-- Initial code written by: Daniel Gillick (dgillick@gmail.com)                  --
+--                                                                               --
+-- Code licensed under the New BSD License                                       --
+--    (http://www.opensource.org/licenses/bsd-license.php)                       --
+-----------------------------------------------------------------------------------
+
+To create a model:
+
+1. Use make_setup.py or your own script to create a setup file. Look at the
+examples in the Setups directory. Each line consists of an audio file, its
+transcription, and a config file used to process the audio.
+
+2. Create a config file, using the examples in the Configs directory as
+templates. Configs/si84.config is a training config, while Configs/nov92.config
+is a testing config. See model.py to understand in more detail what each
+variable in the config file means.
+
+3. Run model.py to build a model. For example:
+
+python model.py Configs/si84.config
+
+4. Test your model. For example:
+
+python test.py -g 8 -i 6 Configs/si84.config Configs/nov92.config
