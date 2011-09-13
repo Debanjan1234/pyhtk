@@ -44,10 +44,11 @@ class Decoder:
         #self.lm = '/u/dgillick/workspace/hmm/wsj0/wdnet_bigram'
         self.lm = '%s/lm' %model.exp
 
-        self.dict = '%s/decode_dict' %model.exp
+        self.dict = model.orig_dict
+        #self.dict = '%s/decode_dict' %model.exp
         #self.dict = '/u/dgillick/workspace/hmm/wsj0/dict_5k'
         
-        self.decode_func = 'hvite'
+        self.decode_func = 'hdecode'
         if self.decode_func == 'hvite': self.config_file = '%s/configcross' %model.common
         else: self.config_file = '%s/config.hdecode' %model.common
        
