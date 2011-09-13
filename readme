@@ -4,7 +4,7 @@
 --                                                                               --
 -- Initial code written by: Daniel Gillick (dgillick@gmail.com)                  --
 --                                                                               --
--- Code licensed under the New BSD License                                       --
+-- Code (.py files) licensed under the New BSD License                           --
 --    (http://www.opensource.org/licenses/bsd-license.php)                       --
 -----------------------------------------------------------------------------------
 
@@ -19,10 +19,23 @@ templates. Configs/si84.config is a training config, while Configs/nov92.config
 is a testing config. See model.py to understand in more detail what each
 variable in the config file means.
 
-3. Run model.py to build a model. For example:
+3. Put a pronunciation dictionary in the Common directory. The CMU dictionary is
+available here:
+https://cmusphinx.svn.sourceforge.net/svnroot/cmusphinx/trunk/cmudict/cmudict.0.7a
+
+4. Make sure the project dependencies are setup properly.
+  - Python 2.5+
+  - HTK 3.4
+  - SRILM
+  - sph2pipe
+
+You should be able to run these tools from the command line, so make sure they're
+in your path.
+
+5. Run model.py to build a model. For example:
 
 python model.py Configs/si84.config
 
-4. Test your model. For example:
+6. Test your model. For example:
 
 python test.py -g 8 -i 6 Configs/si84.config Configs/nov92.config
