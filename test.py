@@ -44,8 +44,8 @@ class Decoder:
         #self.lm = '/u/dgillick/workspace/hmm/wsj0/wdnet_bigram'
         self.lm = '%s/lm' %model.exp
 
-        self.dict = model.orig_dict
-        #self.dict = '%s/decode_dict' %model.exp
+        #self.dict = model.orig_dict
+        self.dict = '%s/decode_dict' %model.exp
         #self.dict = '/u/dgillick/workspace/hmm/wsj0/dict_5k'
         
         self.decode_func = 'hdecode'
@@ -71,8 +71,7 @@ class Decoder:
         if self.test_pipeline['test']:
             import dict_and_lm
             start_time = time.time()
-            dict = self.dict
-            num_utts, words = dict_and_lm.make_mlf_from_transcripts(model, dict, self.setup, self.data, self.word_mlf, self.mfc_list, skip_oov=True)
+            num_utts, words = dict_and_lm.make_mlf_from_transcripts(model, self.dict, self.setup, self.data, self.word_mlf, self.mfc_list, skip_oov=True)
             log(self.logfh, 'wrote word mlf [%d utts] [%s]' %(num_utts, self.word_mlf))
 
             self.decode(model, self.mfc_list, self.word_mlf, self.lm, gaussians, iter, mmi, output_dir)
