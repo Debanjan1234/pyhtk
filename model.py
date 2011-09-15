@@ -127,7 +127,7 @@ class Model:
             import coding
             coding_dir = '%s/Coding' %self.exp
             util.create_new_dir(coding_dir)
-            count coding.wav_to_mfc(model, coding_dir, self.mfc_list)
+            count = coding.wav_to_mfc(model, coding_dir, self.mfc_list)
             log(self.logfh, 'CODING finished [%d files]' %count)
 
         if self.train_pipeline['lm']:

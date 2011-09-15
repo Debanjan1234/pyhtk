@@ -2,7 +2,7 @@
 Coding functions
 """
 
-import os, gzip
+import os, sys, gzip
 import util
 
 def get_mfc_name_from_wav(wav, path, just_key=False):

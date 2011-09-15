@@ -121,7 +121,7 @@ def make_train_dict(dict, train_dict, words):
     fh1.close()
     return count
 
-def build_lm_from_mlf(model, word_mlf, dictionary, vocab, lm_dir, lm, lm_order, target_ppl=None):
+def build_lm_from_mlf(model, word_mlf, dictionary, vocab, lm_dir, lm, lm_order, target_ppl_ratio=None):
     """
     Build a language model using SRILM
     Use the transcripts in the word mlf
