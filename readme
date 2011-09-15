@@ -39,3 +39,13 @@ python model.py Configs/si84.config
 6. Test your model. For example:
 
 python test.py -g 8 -i 6 Configs/si84.config Configs/nov92.config
+> gives WER: 13.55
+
+python test.py -g 8 -i 6 -m Configs/si84.config Configs/nov92.config
+> gives WER: 12.65
+
+Note that by default, the testing code is ignoring over 100 of the test utterances
+(330 -> 216) because they contain at least one word that wasn't in the training
+data.
+The WSJ corpus ships with a standard 5k dictionary and LM. Using these, the
+WER is 8.59 with 8 MLE-trained Gaussians, and 7.81 using MPE.
