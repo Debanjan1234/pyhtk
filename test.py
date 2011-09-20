@@ -63,10 +63,8 @@ class Decoder:
             import coding
             coding_dir = '%s/Coding' %self.exp
             util.create_new_dir(coding_dir)
-            count, total_frames = coding.wav_to_mfc(self, coding_dir, self.mfc_list)
-            secs = total_frames / 100
-            hours = secs / 3600.0
-            log(self.logfh, 'CODING finished [%d files] [%d secs] [%1.2f hours]' %(count, secs, hours))
+            count = coding.wav_to_mfc(self, coding_dir, self.mfc_list)
+            log(self.logfh, 'CODING finished [%d files]' %count)
 
         if self.test_pipeline['test']:
             import dict_and_lm
