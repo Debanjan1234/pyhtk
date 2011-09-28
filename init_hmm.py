@@ -94,7 +94,10 @@ def initialize_hmms(model, root_dir, mfc_list, mono_list, proto_hmm):
     sampled_mfc_list = '%s/mfc_sample.list' %output_dir
     fh = open(sampled_mfc_list, 'w')
     mfcs = open(mfc_list).read().splitlines()
-    for mfc in random.sample(mfcs, int(0.05 * len(mfcs))):
+    random.shuffle(mfcs)
+    mfc_frac = .05
+    num_mfcs_for_hcompv = int(mfc_frac * len(mfcs))
+    for mfc in mfcs[:num_mfcs_for_hcompv]:
         fh.write('%s\n' %mfc)
     fh.close()
 
@@ -139,4 +142,4 @@ def initialize_hmms(model, root_dir, mfc_list, mono_list, proto_hmm):
     cmd += ' %s %s > %s' %(cleanup_config, mono_list, cmd_log)
     os.system(cmd)
 
-    return output_dir
+    return output_dir, num_mfcs_for_hcompv

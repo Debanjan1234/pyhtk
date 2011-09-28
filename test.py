@@ -46,7 +46,7 @@ class Decoder:
 
         #self.dict = model.orig_dict
         self.dict = '%s/decode_dict' %model.exp
-        #self.dict = '/u/dgillick/workspace/hmm/wsj0/dict_5k'
+        #self.dict = '%s/wsj_dict_5k %model.common
         
         self.decode_func = 'hdecode'
         if self.decode_func == 'hvite': self.config_file = '%s/configcross' %model.common

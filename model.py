@@ -152,8 +152,9 @@ class Model:
             log(self.logfh, 'wrote phone mlf [%s]' %self.phone_mlf)
 
             init_hmm.make_proto_hmm(self, self.mfc_list, self.proto_hmm)
-            hmm_dir = init_hmm.initialize_hmms(self, self.mono_root, self.mfc_list, self.phone_list, self.proto_hmm)
+            hmm_dir, num_mfcs = init_hmm.initialize_hmms(self, self.mono_root, self.mfc_list, self.phone_list, self.proto_hmm)
             log(self.logfh, 'initialized an HMM for each phone in [%s]' %hmm_dir)
+            log(self.logfh, '  used [%d] mfc files to compute variance floor' %num_mfcs)
 
             import train_hmm
             for iter in range(1, self.initial_mono_iters+1):
