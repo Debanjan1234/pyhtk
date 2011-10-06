@@ -44,7 +44,7 @@ class Decoder:
         #self.lm = '/u/dgillick/workspace/hmm/wsj0/wdnet_bigram'
         self.lm = '%s/lm' %model.exp
 
-        #self.dict = model.orig_dict
+        #self.dict = model.htk_dict
         self.dict = '%s/decode_dict' %model.exp
         #self.dict = '%s/wsj_dict_5k %model.common
         

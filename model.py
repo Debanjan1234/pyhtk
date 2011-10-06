@@ -98,6 +98,7 @@ class Model:
         self.tri_iters_per_split = int(config.get('train_params', 'tri_iters_per_split'))
 
         ## Shared files created during training
+        self.htk_dict = '%s/dict' %self.exp
         self.mfc_list = '%s/mfc.list' %self.exp
         self.mono_root = '%s/Mono' %self.exp
         self.xword_root = '%s/Xword' %self.exp
@@ -133,11 +134,12 @@ class Model:
         if self.train_pipeline['lm']:
             log(self.logfh, 'MLF/LM/DICT started')
             import dict_and_lm
-            num_utts, words = dict_and_lm.make_mlf_from_transcripts(self, self.orig_dict, self.setup, self.data, self.word_mlf, self.mfc_list)
+            phone_set = dict_and_lm.fix_cmu_dict(self.orig_dict, self.htk_dict)
+            num_utts, words = dict_and_lm.make_mlf_from_transcripts(self, self.htk_dict, self.setup, self.data, self.word_mlf, self.mfc_list)
             log(self.logfh, '  wrote word mlf [%d utts] [%s]' %(num_utts, self.word_mlf))
 
-            num_entries = dict_and_lm.make_train_dict(self.orig_dict, self.train_dict, words)
-            dict_and_lm.make_decode_dict(self.orig_dict, self.decode_dict, words)
+            num_entries = dict_and_lm.make_train_dict(self.htk_dict, self.train_dict, words)
+            dict_and_lm.make_decode_dict(self.htk_dict, self.decode_dict, words)
             log(self.logfh, '  wrote training dictionary [%d entries] [%s]' %(num_entries, self.train_dict))
 
             util.create_new_dir(self.lm_dir)
