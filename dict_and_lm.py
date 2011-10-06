@@ -6,6 +6,44 @@ import os, re, gzip
 import util
 import coding
 
+def fix_cmu_dict(input, output):
+    """
+    Convert CMU dict to HTK style dict
+    - remove comments
+    - strip stress
+    - lowercase phones
+    - escape non-alphanumeric words
+    """
+
+    new_lines = []
+    phone_set = set()
+    for line in open(input):
+        line = line.strip()
+        if line.startswith('##'): continue
+        if len(line) == 0: continue        
+        items = line.split()
+        
+        word = items[0]
+        if not re.match('[A-Za-z0-9]', word[0]): word = '\\' + word
+        
+        phones = items[1:]
+        phones = map(str.lower, phones)
+        phones = map(lambda x: re.sub('[0-9].*', '', x), phones)
+        if max([len(phone) for phone in phones]) > 2: continue
+        phone_set.update(set(phones))
+
+        new_line = word + '\t' + ' '.join(phones)
+        new_lines.append(new_line)
+
+    fh = open(output, 'w')
+    for line in new_lines:
+        fh.write('%\n' %line)
+
+    phone_set = list(phone_set)
+    phone_set.sort()
+    return phone_set
+
+
 def make_mlf_from_transcripts(model, orig_dict, setup, data_path, word_mlf, mfc_list, skip_oov=True):
     """
     An MLF is an HTK-formatted transcription file. This is created
