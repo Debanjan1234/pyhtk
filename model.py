@@ -129,26 +129,28 @@ class Model:
             coding_dir = '%s/Coding' %self.exp
             util.create_new_dir(coding_dir)
             count = coding.wav_to_mfc(model, coding_dir, self.mfc_list)
-            log(self.logfh, 'CODING finished [%d files]' %count)
+            log(self.logfh, 'wrote mfc files [%d]' %count)
+            log(self.logfh, 'CODING finished')
 
         if self.train_pipeline['lm']:
             log(self.logfh, 'MLF/LM/DICT started')
             import dict_and_lm
             phone_set = dict_and_lm.fix_cmu_dict(self.orig_dict, self.htk_dict)
             num_utts, words = dict_and_lm.make_mlf_from_transcripts(self, self.htk_dict, self.setup, self.data, self.word_mlf, self.mfc_list)
-            log(self.logfh, '  wrote word mlf [%d utts] [%s]' %(num_utts, self.word_mlf))
+            log(self.logfh, 'wrote word mlf [%d utts] [%s]' %(num_utts, self.word_mlf))
 
             num_entries = dict_and_lm.make_train_dict(self.htk_dict, self.train_dict, words)
             dict_and_lm.make_decode_dict(self.htk_dict, self.decode_dict, words)
-            log(self.logfh, '  wrote training dictionary [%d entries] [%s]' %(num_entries, self.train_dict))
+            log(self.logfh, 'wrote training dictionary [%d entries] [%s]' %(num_entries, self.train_dict))
 
             util.create_new_dir(self.lm_dir)
             train_vocab = '%s/vocab' %self.lm_dir
             ppl = dict_and_lm.build_lm_from_mlf(self, self.word_mlf, self.train_dict, train_vocab, self.lm_dir, self.lm, self.lm_order)
-            log(self.logfh, '  wrote lm [%s] training ppl [%1.2f]' %(self.lm, ppl))
+            log(self.logfh, 'wrote lm [%s] training ppl [%1.2f]' %(self.lm, ppl))
             log(self.logfh, 'MLF/LM/DICT finished')
             
         if self.train_pipeline['flat_start']:
+            log(self.logfh, 'FLAT START started')
             import init_hmm
             init_hmm.word_to_phone_mlf(self, self.train_dict, self.word_mlf, self.phone_mlf, self.phone_list)
             log(self.logfh, 'wrote phone mlf [%s]' %self.phone_mlf)
@@ -156,7 +158,7 @@ class Model:
             init_hmm.make_proto_hmm(self, self.mfc_list, self.proto_hmm)
             hmm_dir, num_mfcs = init_hmm.initialize_hmms(self, self.mono_root, self.mfc_list, self.phone_list, self.proto_hmm)
             log(self.logfh, 'initialized an HMM for each phone in [%s]' %hmm_dir)
-            log(self.logfh, '  used [%d] mfc files to compute variance floor' %num_mfcs)
+            log(self.logfh, 'used [%d] mfc files to compute variance floor' %num_mfcs)
 
             import train_hmm
             for iter in range(1, self.initial_mono_iters+1):
@@ -170,13 +172,15 @@ class Model:
                 hmm_dir, k, L = train_hmm.run_iter(self, self.mono_root, hmm_dir, self.phone_mlf, self.phone_list, 1, iter)
                 log(self.logfh, 'ran an iteration of BW in [%s] lik/fr [%1.4f]' %(hmm_dir, L))
 
-            log(self.logfh, 'FLAT_START finished')
+            log(self.logfh, 'FLAT START finished')
 
         if self.train_pipeline['mono_to_tri']:
+            log(self.logfh, 'MONO TO TRI started')
             import train_hmm
             mono_final_dir = '%s/HMM-%d-%d' %(self.mono_root, 1, self.initial_mono_iters+self.mono_iters)
             hmm_dir = train_hmm.mono_to_tri(self, self.xword_root, mono_final_dir, self.phone_mlf, self.tri_mlf, self.phone_list, self.tri_list)
-            log(self.logfh, 'initialized triphone models in [%s], created triphone mlf [%s]' %(hmm_dir, self.tri_mlf))
+            log(self.logfh, 'initialized triphone models in [%s]' %hmm_dir)
+            log(self.logfh, 'created triphone mlf [%s]' %self.tri_mlf)
             
             for iter in range(1, self.initial_tri_iters+1):
                 hmm_dir, k, L = train_hmm.run_iter(self, self.xword_root, hmm_dir, self.tri_mlf, self.tri_list, 1, iter)
@@ -191,9 +195,10 @@ class Model:
                 hmm_dir, k, L = train_hmm.run_iter(self, self.xword_root, hmm_dir, self.tri_mlf, self.tied_list, 1, iter)
                 log(self.logfh, 'ran an iteration of BW in [%s] lik/fr [%1.4f]' %(hmm_dir, L))
 
-            log(self.logfh, 'MONO_TO_TRI finished')
+            log(self.logfh, 'MONO TO TRI finished')
 
         if self.train_pipeline['mixup_tri']:
+            log(self.logfh, 'MIXUP TRI started')
             import train_hmm
 
             ## mixup everything
@@ -206,9 +211,11 @@ class Model:
                 for iter in range(1, self.tri_iters_per_split+1):
                     hmm_dir, k, L = train_hmm.run_iter(self, self.xword_root, hmm_dir, self.tri_mlf, self.tied_list, mix_size, iter)
                     log(self.logfh, 'ran an iteration of BW in [%s] lik/fr [%1.4f]' %(hmm_dir, L))
-
+            log(self.logfh, 'MIXUP TRI finished')
+            
         if self.train_pipeline['mmi']:
-
+            log(self.logfh, 'DISCRIM started')
+            
             ## Common items
             import mmi
             mmi_dir = '%s/MMI' %self.exp
@@ -277,8 +284,10 @@ class Model:
             for iter in range(1, mmi_iters+1):
                 model_dir = mmi.run_iter(model, model_dir, num_phone_lm_lattice_dir, phone_lattice_dir, root_dir,
                                          self.tied_list, mfc_list_mmi, hmmirest_config, mix_size, iter)
-                log(self.logfh, 'Ran an iteration of Modified BW in [%s]' %model_dir)
-                        
+                log(self.logfh, 'ran an iteration of Modified BW in [%s]' %model_dir)
+
+            log(self.logfh, 'DISCRIM finished')
+            
 if __name__ == '__main__':
 
     from optparse import OptionParser

@@ -112,11 +112,11 @@ def decode_to_lattices(model, output_dir, model_dir, mfc_list, lm, dict, model_l
 
         ## Check for missing transcriptions
         if id not in lat_ids:
-            if model.verbose > 1: util.log_write(model.logfh, '  Removed bad lat [%s]' %id)
+            if model.verbose > 1: util.log_write(model.logfh, 'removed bad lat [%s]' %id)
             bad_count += 1
         else: fh.write(mfc)
     fh.close()
-    util.log_write(model.logfh, '  Removed bad lats [%d]' %bad_count)
+    util.log_write(model.logfh, 'removed bad lats [%d]' %bad_count)
     
     ## Create an MLF from the recognition output
     outputs = util.get_files(output_dir, r'.*\.rec')
@@ -257,11 +257,11 @@ def phonemark_lattices(model, lattice_dir, output_dir, model_dir, mfc_list, lm, 
 
         ## Check for missing transcriptions
         if id not in lat_ids:
-            if model.verbose > 1: util.log_write(model.logfh, '  Removed bad lat [%s]' %id)
+            if model.verbose > 1: util.log_write(model.logfh, 'removed bad lat [%s]' %id)
             bad_count += 1
         else: fh.write(mfc)
     fh.close()
-    util.log_write(model.logfh, '  Removed bad lats [%d]' %bad_count)
+    util.log_write(model.logfh, 'removed bad lats [%d]' %bad_count)
 
 def create_num_lattices(model, output_dir, lm, dict, config, word_mlf):
 

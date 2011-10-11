@@ -95,7 +95,7 @@ def initialize_hmms(model, root_dir, mfc_list, mono_list, proto_hmm):
     fh = open(sampled_mfc_list, 'w')
     mfcs = open(mfc_list).read().splitlines()
     random.shuffle(mfcs)
-    mfc_frac = .05
+    mfc_frac = model.var_floor_fraction
     num_mfcs_for_hcompv = int(mfc_frac * len(mfcs))
     for mfc in mfcs[:num_mfcs_for_hcompv]:
         fh.write('%s\n' %mfc)
@@ -108,10 +108,8 @@ def initialize_hmms(model, root_dir, mfc_list, mono_list, proto_hmm):
     cmd += ' -M %s' %output_dir
     cmd += ' %s > %s' %(proto_hmm, cmd_log)
 
-    if model.local == 1:
-        os.system(cmd)
-    else:
-        util.run(cmd, output_dir)
+    if model.local == 1: os.system(cmd)
+    else: util.run(cmd, output_dir)
 
     ## Copy the initial HMM for each monophone
     proto_hmm = '%s/proto_hmm' %output_dir    

@@ -22,6 +22,7 @@ variable in the config file means.
 3. Put a pronunciation dictionary in the Common directory. The CMU dictionary is
 available here:
 https://cmusphinx.svn.sourceforge.net/svnroot/cmusphinx/trunk/cmudict/cmudict.0.7a
+Make sure your config file references this file.
 
 4. Make sure the project dependencies are setup properly.
   - Python 2.5+

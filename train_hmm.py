@@ -180,11 +180,11 @@ def align(model, root_dir, mfc_list, model_dir, word_mlf, new_mlf, model_list, d
 
         ## Check for missing transcriptions
         if id not in mlf_labels:
-            util.log_write(model.logfh, '  Removed bad alignment [%s]' %id)
+            if model.verbose > 0: util.log_write(model.logfh, 'removed bad alignment [%s]' %id)
             bad_count += 1
         else: fh.write(mfc + '\n')
     fh.close()
-    util.log_write(model.logfh, '  Removed alignments [%d]' %bad_count)
+    util.log_write(model.logfh, 'removed alignments [%d]' %bad_count)
 
     ## Clean up
     os.system('rm -f %s/mfc.list.* %s/align.output.*' %(output_dir, output_dir))

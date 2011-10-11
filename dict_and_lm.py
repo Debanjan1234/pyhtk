@@ -24,6 +24,7 @@ def fix_cmu_dict(input, output):
         items = line.split()
         
         word = items[0]
+        word = re.sub('\([23456789]\)$', '', word)
         if not re.match('[A-Za-z0-9]', word[0]): word = '\\' + word
         
         phones = items[1:]
@@ -74,14 +75,14 @@ def make_mlf_from_transcripts(model, orig_dict, setup, data_path, word_mlf, mfc_
         trans = map(str.upper, items[2:])
         for word in trans:
             if replace_escaped_words and '\\' in word:
-                new_word = re.sub(r'\\[^A-Za-z]*', r'', word)
+                new_word = re.sub(r'\\[^A-Za-z0-9]*', r'', word)
                 if new_word in dict_words: word = new_word
                 
             if word not in dict_words:
                 ## Don't include bracketed words or periods in the labels
                 if word.startswith('[') and word.endswith(']'): continue
                 if word == '.': continue
-                if model.verbose > 1: util.log_write(model.logfh, '  Not in dictionary [%s]' %word)
+                if model.verbose > 0: util.log_write(model.logfh, 'not in dictionary [%s]' %word)
                 
                 ## Remove the utterance if there are other non-dictionary words
                 if skip_oov: skip = True
@@ -125,6 +126,7 @@ def make_decode_dict(dict, decode_dict, words):
         line = line.strip()
         if len(line) <= 0: continue
         if line.startswith('#'): continue
+        orig_word = line.split()[0].upper()
         clean_line = re.sub(r'\(\d\)', r'', line)
         word = clean_line.split()[0].upper()
         if word[0].isdigit(): word = '_' + word
@@ -147,6 +149,7 @@ def make_train_dict(dict, train_dict, words):
         line = line.strip()
         if len(line) <= 0: continue
         if line.startswith('#'): continue
+        orig_word = line.split()[0].upper()
         clean_line = re.sub(r'\(\d\)', r'', line)
         word = clean_line.split()[0].upper()
         if word[0].isdigit(): word = '_' + word

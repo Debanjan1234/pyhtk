@@ -1,4 +1,5 @@
 """
+Create setup files used to train models
 """
 
 import os, sys, re
