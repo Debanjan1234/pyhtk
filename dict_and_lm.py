@@ -35,9 +35,10 @@ def fix_cmu_dict(input, output):
         new_line = word + '\t' + ' '.join(phones)
         new_lines.append(new_line)
 
+    new_lines.sort()
     fh = open(output, 'w')
     for line in new_lines:
-        fh.write('%\n' %line)
+        fh.write(line + '\n')
 
     phone_set = list(phone_set)
     phone_set.sort()
