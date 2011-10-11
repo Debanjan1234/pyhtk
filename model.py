@@ -90,6 +90,7 @@ class Model:
 
         ## Load training parameters
         self.split_path_letters = int(config.get('train_params', 'split_path_letters'))
+        self.var_floor_fraction = float(config.get('train_params', 'var_floor_fraction'))
         self.initial_mono_iters = int(config.get('train_params', 'initial_mono_iters'))
         self.mono_iters = int(config.get('train_params', 'mono_iters'))
         self.initial_tri_iters = int(config.get('train_params', 'initial_tri_iters'))
