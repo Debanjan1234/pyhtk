@@ -46,11 +46,32 @@ class SplitList:
     def cleanup(self):
         for file in self.file_list: os.remove(file)
 
-def decode_to_lattices(model, output_dir, model_dir, mfc_list, lm, dict, model_list, config, gold_mlf):
+def decode_to_lattices(model, output_dir, model_dir, mfc_list, lm, dict, model_list, gold_mlf):
 
     sys.stderr.write('Decoding to lattices\n')
     output_mlf = '%s/train_recog.mlf' %output_dir
     results_log = '%s/results.log' %output_dir
+
+    ## Create a config file to use with HDecode
+    hdecode_config = '%s/hdecode.config' %output_dir
+    fh = open(hdecode_config, 'w')
+    #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
+    fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+    fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
+    fh.write('RAWMITFORMAT = T\n')
+    fh.write('HPARM: TARGETKIND = MFCC_0_D_A_Z\n')
+    fh.write('GCFREQ = 50\n')
+    fh.write('HLAT:TRACE = 19\n')
+    fh.write('HLVNET:TRACE = 1\n')
+    fh.write('HLVREC:TRACE = 1\n')
+    fh.write('HLVLM:TRACE = 1\n')
+    fh.write('LATPRUNEBEAM = 500.0\n')
+    fh.write('MAXLMLA = 3.0\n')
+    fh.write('BUILDLATSENTEND = T\n')
+    fh.write('FORCELATOUT = F\n')
+    fh.write('STARTWORD = <s>\n')
+    fh.write('ENDWORD = </s>\n')
+    fh.close()
 
     ## HDecode parameters
     utts_per_split = 100
@@ -62,7 +83,7 @@ def decode_to_lattices(model, output_dir, model_dir, mfc_list, lm, dict, model_l
     word_insertion_penalty = 0.0
 
     def hdecode(input, output):
-        cmd  = 'HDecode -A -D -V -T 9 -o M -z lat -C %s' %config
+        cmd  = 'HDecode -A -D -V -T 9 -o M -z lat -C %s' %hdecode_config
         cmd += ' -H %s/MMF' %model_dir
         cmd += ' -k %d' %block_size
         cmd += ' -t %f 100.0' %beam
@@ -139,10 +160,24 @@ def decode_to_lattices(model, output_dir, model_dir, mfc_list, lm, dict, model_l
     print os.popen('cat ' + results_log).read()
 
 
-def prune_lattices(model, lattice_dir, output_dir, dict, config):
+def prune_lattices(model, lattice_dir, output_dir, dict):
 
     sys.stderr.write('Pruning lattices\n')
     
+    ## Create a config file to use with HLRescore
+    hlrescore_config = '%s/hlrescore.config' %output_dir
+    fh = open(hlrescore_config, 'w')
+    #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
+    fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+    fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
+    fh.write('RAWMITFORMAT = T\n')
+    fh.write('HLRESCORE: FIXBADLATS = TRUE\n')
+    fh.write('HLRESCORE: ENDWORD = </s>\n')
+    fh.write('HLRESCORE: STARTWORD = <s>\n')
+    fh.write('HLRESCORE: STARTWORD = <s>\n')
+    fh.write('HLRESCORE: ENDWORD = </s>\n')
+    fh.close()
+
     ## HLRescore parameters
     utts_per_split = 100
     pruning_threshold = 200.0
@@ -150,7 +185,7 @@ def prune_lattices(model, lattice_dir, output_dir, dict, config):
     trans_penalty = 0.0
 
     def hlrescore(input, path):
-        cmd  = 'HLRescore -A -D -T 1 -w -m f -C %s' %config
+        cmd  = 'HLRescore -A -D -T 1 -w -m f -C %s' %hlrescore_config
         cmd += ' -S %s' %input
         cmd += ' -t %f 200.0' %pruning_threshold
         cmd += ' -L %s/%s/' %(lattice_dir, path)
@@ -191,9 +226,30 @@ def prune_lattices(model, lattice_dir, output_dir, dict, config):
         util.run_parallel(cmds_file, model.jobs, output_dir)
 
 
-def phonemark_lattices(model, lattice_dir, output_dir, model_dir, mfc_list, lm, dict, model_list, config):
+def phonemark_lattices(model, lattice_dir, output_dir, model_dir, mfc_list, lm, dict, model_list):
 
     sys.stderr.write('Phonemarking lattices\n')
+
+    ## Create a config file to use with HDecode
+    hdecode_config = '%s/hdecode.config' %output_dir
+    fh = open(hdecode_config, 'w')
+    #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
+    fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+    fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
+    fh.write('RAWMITFORMAT = T\n')
+    fh.write('HPARM: TARGETKIND = MFCC_0_D_A_Z\n')
+    fh.write('GCFREQ = 50\n')
+    fh.write('HLAT:TRACE = 19\n')
+    fh.write('HLVNET:TRACE = 1\n')
+    fh.write('HLVREC:TRACE = 1\n')
+    fh.write('HLVLM:TRACE = 1\n')
+    fh.write('LATPRUNEBEAM = 500.0\n')
+    fh.write('MAXLMLA = 3.0\n')
+    fh.write('BUILDLATSENTEND = T\n')
+    fh.write('FORCELATOUT = F\n')
+    fh.write('STARTWORD = <s>\n')
+    fh.write('ENDWORD = </s>\n')
+    fh.close()
     
     ## HDecode parameters
     utts_per_split = 100
@@ -206,7 +262,7 @@ def phonemark_lattices(model, lattice_dir, output_dir, model_dir, mfc_list, lm, 
         input_dir = '%s/%s/' %(lattice_dir, path)
         if not os.path.isdir(input_dir):
             input_dir = '%s/%s/' %(lattice_dir, path.replace('_', ''))
-        cmd  = 'HDecode.mod -A -D -V -T 9 -q tvaldm -z lat -X lat -C %s' %config
+        cmd  = 'HDecode.mod -A -D -V -T 9 -q tvaldm -z lat -X lat -C %s' %hdecode_config
         cmd += ' -H %s/MMF' %model_dir
         cmd += ' -k %d' %block_size
         cmd += ' -t %f' %beam
@@ -263,12 +319,26 @@ def phonemark_lattices(model, lattice_dir, output_dir, model_dir, mfc_list, lm, 
     fh.close()
     util.log_write(model.logfh, 'removed bad lats [%d]' %bad_count)
 
-def create_num_lattices(model, output_dir, lm, dict, config, word_mlf):
+def create_num_lattices(model, output_dir, lm, dict, word_mlf):
 
     sys.stderr.write('Creating numerator word lattices\n')
+
+    ## Create a config file to use with HLRescore
+    hlrescore_config = '%s/hlrescore.config' %output_dir
+    fh = open(hlrescore_config, 'w')
+    #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
+    fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+    fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
+    fh.write('RAWMITFORMAT = T\n')
+    fh.write('HLRESCORE: FIXBADLATS = TRUE\n')
+    fh.write('HLRESCORE: ENDWORD = </s>\n')
+    fh.write('HLRESCORE: STARTWORD = <s>\n')
+    fh.write('HLRESCORE: STARTWORD = <s>\n')
+    fh.write('HLRESCORE: ENDWORD = </s>\n')
+    fh.close()
     
     def hlrescore(input, output):
-        cmd  = 'HLRescore -A -D -T 1 -w -f -q tvalqr -C %s' %config
+        cmd  = 'HLRescore -A -D -T 1 -w -f -q tvalqr -C %s' %hlrescore_config
         cmd += ' -S %s' %input
         cmd += ' -I %s' %word_mlf
         cmd += ' -l %s/' %output
@@ -301,16 +371,30 @@ def create_num_lattices(model, output_dir, lm, dict, config, word_mlf):
         fh.close()
         util.run_parallel(cmds_file, model.jobs, output_dir)
 
-def add_lm_lattices(model, lattice_dir, output_dir, dict, lm, config):
+def add_lm_lattices(model, lattice_dir, output_dir, dict, lm):
 
     sys.stderr.write('adding LM scores to numerator lattices\n')
+
+    ## Create a config file to use with HLRescore
+    hlrescore_config = '%s/hlrescore.config' %output_dir
+    fh = open(hlrescore_config, 'w')
+    #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
+    fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+    fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
+    fh.write('RAWMITFORMAT = T\n')
+    fh.write('HLRESCORE: FIXBADLATS = TRUE\n')
+    fh.write('HLRESCORE: ENDWORD = </s>\n')
+    fh.write('HLRESCORE: STARTWORD = <s>\n')
+    fh.write('HLRESCORE: STARTWORD = <s>\n')
+    fh.write('HLRESCORE: ENDWORD = </s>\n')
+    fh.close()
     
     ## HLRescore parameters
     grammar_scale = 15.0
     trans_penalty = 0.0
 
     def hlrescore(input, path):
-        cmd  = 'HLRescore -A -D -T 1 -w -c -q tvaldm -C %s' %config
+        cmd  = 'HLRescore -A -D -T 1 -w -c -q tvaldm -C %s' %hlrescore_config
         cmd += ' -S %s' %input
         cmd += ' -L %s/%s/' %(lattice_dir, path)
         cmd += ' -l %s/%s/' %(output_dir, path)
@@ -358,11 +442,31 @@ def run_iter(model, model_dir, num_lattice_dir, den_lattice_dir, root_dir, model
 
     output_dir = '%s/HMMI-%d-%d' %(root_dir, mix_size, iter)
     util.create_new_dir(output_dir)
-
     utts_per_split = max(250, (1 + (model.setup_length / 200)))
 
+    ## Create a config file to use with HLRescore
+    hmmirest_config = '%s/hmmirest.config' %output_dir
+    fh = open(hmmirest_config, 'w')
+    #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
+    fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+    fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
+    fh.write('RAWMITFORMAT = T\n')
+    fh.write('HPARM: TARGETKIND = MFCC_0_D_A_Z\n')
+    fh.write('HMMDEFOFILTER = "gzip -c > $.gz"\n')
+    fh.write('HMMDEFFILTER = "gunzip -c < $.gz"\n')
+    fh.write('HMMIREST: LATMASKNUM = */%%%?????.???\n')
+    fh.write('HMMIREST: LATMASKDEN = */%%%?????.???\n')
+    #fh.write('HMMIREST: LATMASKNUM =  */%%%%%%%%/???????????????????.???\n')
+    #fh.write('HMMIREST: LATMASKDEN =  */%%%%%%%%/???????????????????.???\n')
+    fh.write('HFBLAT: LATPROBSCALE = 0.06667\n')
+    fh.write('HMMIREST: E = 2.0\n')
+    fh.write('ISMOOTHTAU = 50\n')
+    fh.write('MPE = TRUE\n')
+    #fh.write('MWE = TRUE\n')
+    fh.close()
+
     def hmmirest(input, split_num):
-        cmd  = 'HMMIRest -A -D -T 1 -C %s' %config
+        cmd  = 'HMMIRest -A -D -T 1 -C %s' %hmmirest_config
         cmd += ' -H %s/MMF' %model_dir
         cmd += ' -q %s' %num_lattice_dir
         cmd += ' -r %s' %den_lattice_dir

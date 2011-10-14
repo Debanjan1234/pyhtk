@@ -117,8 +117,6 @@ def align(model, root_dir, mfc_list, model_dir, word_mlf, new_mlf, model_list, d
 
     output_dir = '%s/Align' %root_dir
     util.create_new_dir(output_dir)
-
-    merge_sil = '%s/merge_sp_sil.led' %model.common
     utts_per_split = max(100, (1 + (model.setup_length / 200)))
 
     ## Copy old mfc list
@@ -129,7 +127,8 @@ def align(model, root_dir, mfc_list, model_dir, word_mlf, new_mlf, model_list, d
 
     def hvite(input, output):
         #-o SWT 
-        cmd  = 'HVite -A -T 1 -b silence -a -m -t %d' %prune_thresh
+        cmd  = 'HVite -D -A -T 1 -b silence -a -m -y lab '
+        cmd += '-t %d' %prune_thresh
         cmd += ' -C %s' %model.mfc_config
         cmd += ' -H %s/MMF' %model_dir
         cmd += ' -i %s' %output
@@ -157,7 +156,7 @@ def align(model, root_dir, mfc_list, model_dir, word_mlf, new_mlf, model_list, d
             print cmd
             print os.popen(cmd).read()
     else:
-        cmds_file = '%s/hvite.commands' %model.exp
+        cmds_file = '%s/hvite.commands' %output_dir
         fh = open(cmds_file, 'w')
         for cmd in cmds: fh.write('%s\n' %cmd)
         fh.close()
@@ -165,7 +164,13 @@ def align(model, root_dir, mfc_list, model_dir, word_mlf, new_mlf, model_list, d
 
     ## Merge and fix silences
     ## TODO: -s file_list
-    cmd = 'HLEd -A -T 1 -i %s %s %s >> %s/hvite.log' %(new_mlf, merge_sil, ' '.join(outputs), output_dir)
+    merge_sil = '%s/merge_sp_sil.led' %output_dir
+    fh = open(merge_sil, 'w')
+    fh.write('ME sil sp sil\n')
+    fh.write('ME sil sil sil\n')
+    fh.write('ME sp sil sil\n')
+    fh.close()
+    cmd = 'HLEd -D -A -T 1 -i %s %s %s >> %s/hled.log' %(new_mlf, merge_sil, ' '.join(outputs), output_dir)
     if model.local == 1: os.system(cmd)
     else: util.run(cmd, output_dir)
 
@@ -187,7 +192,7 @@ def align(model, root_dir, mfc_list, model_dir, word_mlf, new_mlf, model_list, d
     util.log_write(model.logfh, 'removed alignments [%d]' %bad_count)
 
     ## Clean up
-    os.system('rm -f %s/mfc.list.* %s/align.output.*' %(output_dir, output_dir))
+    #os.system('rm -f %s/mfc.list.* %s/align.output.*' %(output_dir, output_dir))
     return output_dir
 
 def mono_to_tri(model, root_dir, mono_dir, phone_mlf, tri_mlf, mono_list, tri_list):
@@ -200,10 +205,22 @@ def mono_to_tri(model, root_dir, mono_dir, phone_mlf, tri_mlf, mono_list, tri_li
     util.create_new_dir(root_dir)
     util.create_new_dir(output_dir)
 
-    mktri_led = '%s/mktri_cross.led' %model.common
+    mktri_led = '%s/mktri_cross.led' %output_dir
     mktri_hed = '%s/mktri.hed' %output_dir
     hled_log = '%s/hled_make_tri.log' %output_dir
     hhed_log = '%s/hhed_clone_mono.log' %output_dir
+
+    ## Create an HLEd script
+    fh = open(mktri_led, 'w')
+    fh.write('NB sp\n')
+    fh.write('TC\n')
+    fh.write('IT\n')
+    fh.write('CH sil * sil *\n')
+    fh.write('CH sp  * sp  *\n')
+    fh.write('ME sil sil sil sil\n')
+    fh.write('ME sil sil sil\n')
+    fh.write('ME sil sp sil\n')
+    fh.close()
 
     ## Create a new alignment in tri_mlf and output used triphones to tri_list
     cmd  = 'HLEd -A -T 1 -n %s' %tri_list
@@ -268,7 +285,7 @@ def tie_states(model, output_dir, model_dir, mono_list, tri_list, tied_list):
     fh.write('TR 0\n')
     fh.write('%s\n' %open(model.tree_questions).read())
     fh.write('TR 12\n')
-    for p in phones:
+    for p in non_sp_phones:
         for s in range(1, model.states+1)[1:-1]:
             fh.write('TB %d "ST_%s_%d_" {(%s,*-%s+*,%s+*,*-%s).state[%d]}\n' %(tb,p,s,p,p,p,p,s))
     fh.write('TR 1\n')

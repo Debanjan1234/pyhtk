@@ -10,7 +10,6 @@ class Decoder:
         self.config = config
         self.setup = config.get('paths', 'setup')
         self.exp = config.get('paths', 'exp')
-        self.mfc_config = config.get('paths', 'mfc_config')
         if not os.path.isdir(self.exp): os.makedirs(self.exp)
         self.data = config.get('paths', 'data')
         if not os.path.isdir(self.data): os.makedirs(self.data)
@@ -37,6 +36,7 @@ class Decoder:
         self.test_pipeline['test'] = int(config.get('test_pipeline', 'test'))
 
         self.model = model
+        self.mfc_config = model.mfc_config
         self.mfc_list = '%s/mfc.list' %self.exp
         self.word_mlf = '%s/words.mlf' %self.exp
         self.phone_mlf = '%s/phones.mlf' %self.exp
@@ -49,8 +49,6 @@ class Decoder:
         #self.dict = '%s/wsj_dict_5k %model.common
         
         self.decode_func = 'hdecode'
-        if self.decode_func == 'hvite': self.config_file = '%s/configcross' %model.common
-        else: self.config_file = '%s/config.hdecode' %model.common
        
     def test(self, gaussians=1, iter=8, mmi=False, output_dir=None):
 
@@ -92,9 +90,9 @@ class Decoder:
         output_mlf = '%s/decoded.mlf' %output_dir
     
         def hvite(input, output):
-            cmd  = 'HVite -A -T 1 -l "*" -b silence '
+            cmd  = 'HVite -D -A -T 1 -l "*" '
             cmd += '-t %f ' %self.beam
-            cmd += '-C %s ' %self.config_file
+            cmd += '-C %s ' %self.decode_config
             cmd += '-H %s ' %model_file
             cmd += '-S %s ' %input
             cmd += '-i %s ' %output
@@ -111,7 +109,7 @@ class Decoder:
         max_model = 0
 
         def hdecode(input, output):
-            cmd  = 'HDecode -A -D -V -T 9 -o M -C %s' %self.config_file
+            cmd  = 'HDecode -D -A -V -T 9 -o M -C %s' %self.decode_config
             cmd += ' -H %s' %model_file
             cmd += ' -k %d' %block_size
             cmd += ' -t %f 100.0' %self.beam
@@ -130,7 +128,23 @@ class Decoder:
         cmd = 'split -a 4 -d -l %d %s %s/%s' %(utts_per_split, mfc_list, output_dir, 'mfc.list.')
         os.system(cmd)
 
-        ## Create the HVite commands
+        ## Create appropriate config file
+        self.decode_config = '%s/%s.config' %(output_dir, self.decode_func)
+        fh = open(self.decode_config, 'w')
+        if self.decode_func == 'hvite':
+            fh.write('FORCECXTEXP = T\n')
+            fh.write('ALLOWXWRDEXP = T\n')
+        elif self.decode_func == 'hdecode'):
+            #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
+            fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+            fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
+            fh.write('RAWMITFORMAT = T\n')
+            fh.write('HPARM: TARGETKIND = MFCC_0_D_A_Z\n')
+            fh.write('STARTWORD = <s>\n')
+            fh.write('ENDWORD = </s>\n')
+        fh.close()
+
+        ## Create the HVite/HDecode commands
         cmds = []
         outputs = []
         inputs = os.popen('ls %s/mfc.list.*' %output_dir).read().splitlines()

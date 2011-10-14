@@ -130,7 +130,16 @@ def initialize_hmms(model, root_dir, mfc_list, mono_list, proto_hmm):
     os.system(cmd)
 
     ## Fix sp and silence models
-    cleanup_config = '%s/cleanup_init.hed' %model.common
+    cleanup_config = '%s/cleanup_init.hed' %output_dir
+    fh = open(cleanup_config, 'w')
+    fh.write('AT 4 2 0.2 {sil.transP}\n')
+    fh.write('AT 2 4 0.2 {sil.transP}\n')
+    fh.write('AT 1 5 0.3 {sp.transP}\n')
+    fh.write('TI silsp_2 {sil.state[2],sp.state[2]}\n')
+    fh.write('TI silsp_3 {sil.state[3],sp.state[3]}\n')
+    fh.write('TI silsp_4 {sil.state[4],sp.state[4]}\n')
+    fh.close()
+    
     hmm_defs_final = '%s/MMF' %output_dir
     cmd_log = '%s/hhed_sil.log' %output_dir
     cmd  = 'HHEd -A -D -T 1 -d %s' %output_dir

@@ -5,6 +5,37 @@ Coding functions
 import os, sys, gzip
 import util
 
+def create_config(model):
+    """
+    Create an HTK style config from the front end settings
+    """
+    targetkind = 'MFCC'
+    if model.use_c0: targetkind += '_0'
+    if model.use_deltas: targetkind += '_D'
+    if model.use_ddeltas: targetkind += '_A'
+    if model.mean_norm: targetkind += '_Z'
+
+    model.front_end = {'TARGETKIND': targetkind,
+                       'TARGETRATE': '%1.1f' %(model.frame_length * 10000.0),
+                       'SAVECOMPRESSED': 'T',
+                       'SAVEWITHCRC': 'T',
+                       'WINDOWSIZE': '%1.1f' %(model.delta_window * 10000.0),
+                       'USEHAMMING': 'T',
+                       'PREEMCOEF': '0.97',
+                       'NUMCHANS': '26',
+                       'CEPLIFTER': '22',
+                       'NUMCEPS': '%d' %model.num_cepstra,
+                       'ENORMALISE': 'T',
+                       'ZMEANSOURCE': 'T',
+                       'USEPOWER': 'T',
+                       'BYTEORDER': 'VAX'}
+
+    fh = open(model.mfc_config, 'w')
+    for key, val in model.front_end.items():
+        fh.write('%s = %s\n' %(key, val))
+    fh.close()
+
+
 def get_mfc_name_from_wav(wav, path, just_key=False):
     items = wav.split('/')
     basename = items.pop()

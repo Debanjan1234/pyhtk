@@ -72,7 +72,6 @@ class Model:
         self.common = config.get('paths', 'common')
         self.orig_dict = config.get('paths', 'dict')
         self.tree_questions = config.get('paths', 'tree_questions')
-        self.mfc_config = config.get('paths', 'mfc_config')
         self.setup = config.get('paths', 'setup')
         if not self.setup.endswith('gz'): self.setup_length = int(os.popen('wc -l %s' %self.setup).read().split()[0])
         else: self.setup_length = int(os.popen('zcat %s | wc -l' %self.setup).read().split()[0])
@@ -88,9 +87,19 @@ class Model:
         self.dt_ro = float(config.get('hmm_params', 'dt_ro'))
         self.dt_tb = float(config.get('hmm_params', 'dt_tb'))
 
+        ## Load front end parameters
+        self.use_c0 = int(config.get('front_end', 'use_c0'))
+        self.use_deltas = int(config.get('front_end', 'use_deltas'))
+        self.use_ddeltas = int(config.get('front_end', 'use_ddeltas'))
+        self.mean_norm = int(config.get('front_end', 'mean_norm'))
+        self.frame_length = int(config.get('front_end', 'frame_length'))
+        self.delta_window = int(config.get('front_end', 'delta_window'))
+        self.num_cepstra = int(config.get('front_end', 'num_cepstra'))
+
         ## Load training parameters
         self.split_path_letters = int(config.get('train_params', 'split_path_letters'))
         self.var_floor_fraction = float(config.get('train_params', 'var_floor_fraction'))
+        self.lm_order = int(config.get('train_params', 'lm_order'))
         self.initial_mono_iters = int(config.get('train_params', 'initial_mono_iters'))
         self.mono_iters = int(config.get('train_params', 'mono_iters'))
         self.initial_tri_iters = int(config.get('train_params', 'initial_tri_iters'))
@@ -101,13 +110,14 @@ class Model:
         ## Shared files created during training
         self.htk_dict = '%s/dict' %self.exp
         self.mfc_list = '%s/mfc.list' %self.exp
+        self.coding_root = '%s/Coding' %self.exp
         self.mono_root = '%s/Mono' %self.exp
         self.xword_root = '%s/Xword' %self.exp
         self.train_dict = '%s/train_dict' %self.exp
         self.decode_dict = '%s/decode_dict' %self.exp
+        self.mfc_config = '%s/mfc_config' %self.exp
         self.lm_dir = '%s/LM' %self.exp
         self.lm = '%s/lm' %self.exp
-        self.lm_order = 3
         self.mmi_lm = '%s/mmi_lm' %self.exp
         self.proto_hmm = '%s/proto_hmm' %self.exp
         self.word_mlf = '%s/words.mlf' %self.exp
@@ -127,9 +137,9 @@ class Model:
         if self.train_pipeline['coding']:
             log(self.logfh, 'CODING started')
             import coding
-            coding_dir = '%s/Coding' %self.exp
-            util.create_new_dir(coding_dir)
-            count = coding.wav_to_mfc(model, coding_dir, self.mfc_list)
+            util.create_new_dir(self.coding_root)
+            coding.create_config(self)
+            count = coding.wav_to_mfc(self, self.coding_root, self.mfc_list)
             log(self.logfh, 'wrote mfc files [%d]' %count)
             log(self.logfh, 'CODING finished')
 
@@ -223,9 +233,6 @@ class Model:
             util.create_new_dir(mmi_dir)
             mfc_list_mmi = '%s/mfc.list' %mmi_dir
             os.system('cp %s %s' %(self.mfc_list, mfc_list_mmi))
-            hdecode_config = '%s/config.hdecode' %self.common
-            hlrescore_config = '%s/config.hlrescore' %self.common
-            hmmirest_config = '%s/config.hmmirest' %self.common
 
             ## Create weak LM
             import dict_and_lm
@@ -242,39 +249,39 @@ class Model:
             iter_num = self.tri_iters_per_split
             model_dir = '%s/HMM-%d-%d' %(self.xword_root, num_gaussians, iter_num)
             mmi.decode_to_lattices(model, lattice_dir, model_dir, mfc_list_mmi, self.mmi_lm, self.decode_dict,
-                                   self.tied_list, hdecode_config, self.word_mlf)
+                                   self.tied_list, self.word_mlf)
             log(self.logfh, 'generated training lattices in [%s]' %lattice_dir)
 
             ## Prune and determinize lattices
             pruned_lattice_dir = '%s/Denom/Lat_prune' %mmi_dir
             util.create_new_dir(pruned_lattice_dir)
-            mmi.prune_lattices(model, lattice_dir, pruned_lattice_dir, self.decode_dict, hlrescore_config)
+            mmi.prune_lattices(model, lattice_dir, pruned_lattice_dir, self.decode_dict)
             log(self.logfh, 'pruned lattices in [%s]' %pruned_lattice_dir)
 
             ## Phone-mark lattices
             phone_lattice_dir = '%s/Denom/Lat_phone' %mmi_dir
             util.create_new_dir(phone_lattice_dir)
             mmi.phonemark_lattices(model, pruned_lattice_dir, phone_lattice_dir, model_dir, mfc_list_mmi,
-                                   self.mmi_lm, self.decode_dict, self.tied_list, hdecode_config)
+                                   self.mmi_lm, self.decode_dict, self.tied_list)
             log(self.logfh, 'phone-marked lattices in [%s]' %phone_lattice_dir)
 
             ## Create numerator word lattices
             num_lattice_dir = '%s/Num/Lat_word' %mmi_dir
             util.create_new_dir(num_lattice_dir)
-            mmi.create_num_lattices(model, num_lattice_dir, self.mmi_lm, self.decode_dict, hlrescore_config, self.word_mlf)
+            mmi.create_num_lattices(model, num_lattice_dir, self.mmi_lm, self.decode_dict, self.word_mlf)
             log(self.logfh, 'generated numerator lattices in [%s]' %num_lattice_dir)
 
             ## Phone-mark numerator lattices
             num_phone_lattice_dir = '%s/Num/Lat_phone' %mmi_dir
             util.create_new_dir(num_phone_lattice_dir)
             mmi.phonemark_lattices(model, num_lattice_dir, num_phone_lattice_dir, model_dir, mfc_list_mmi,
-                                   self.mmi_lm, self.decode_dict, self.tied_list, hdecode_config)
+                                   self.mmi_lm, self.decode_dict, self.tied_list)
             log(self.logfh, 'phone-marked numerator lattices in [%s]' %num_phone_lattice_dir)
 
             ## Add LM scores to numerator phone lattices
             num_phone_lm_lattice_dir = '%s/Num/Lat_phone_lm' %mmi_dir
             util.create_new_dir(num_phone_lm_lattice_dir)
-            mmi.add_lm_lattices(model, num_phone_lattice_dir, num_phone_lm_lattice_dir, self.decode_dict, self.mmi_lm, hlrescore_config)
+            mmi.add_lm_lattices(model, num_phone_lattice_dir, num_phone_lm_lattice_dir, self.decode_dict, self.mmi_lm)
             log(self.logfh, 'added LM scores to numerator lattices in [%s]' %num_phone_lm_lattice_dir)
 
             ## Modified Baum-Welch estimation
@@ -284,7 +291,7 @@ class Model:
             mix_size = num_gaussians
             for iter in range(1, mmi_iters+1):
                 model_dir = mmi.run_iter(model, model_dir, num_phone_lm_lattice_dir, phone_lattice_dir, root_dir,
-                                         self.tied_list, mfc_list_mmi, hmmirest_config, mix_size, iter)
+                                         self.tied_list, mfc_list_mmi, mix_size, iter)
                 log(self.logfh, 'ran an iteration of Modified BW in [%s]' %model_dir)
 
             log(self.logfh, 'DISCRIM finished')
