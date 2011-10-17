@@ -56,7 +56,7 @@ def decode_to_lattices(model, output_dir, model_dir, mfc_list, lm, dict, model_l
     hdecode_config = '%s/hdecode.config' %output_dir
     fh = open(hdecode_config, 'w')
     #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
-    fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+    fh.write('HNETFILTER = "gunzip -c < $.gz"\n')
     fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
     fh.write('RAWMITFORMAT = T\n')
     fh.write('HPARM: TARGETKIND = MFCC_0_D_A_Z\n')
@@ -168,7 +168,7 @@ def prune_lattices(model, lattice_dir, output_dir, dict):
     hlrescore_config = '%s/hlrescore.config' %output_dir
     fh = open(hlrescore_config, 'w')
     #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
-    fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+    fh.write('HNETFILTER = "gunzip -c < $.gz"\n')
     fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
     fh.write('RAWMITFORMAT = T\n')
     fh.write('HLRESCORE: FIXBADLATS = TRUE\n')
@@ -232,7 +232,7 @@ def phonemark_lattices(model, lattice_dir, output_dir, model_dir, mfc_list, lm, 
     hdecode_config = '%s/hdecode.config' %output_dir
     fh = open(hdecode_config, 'w')
     #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
-    fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+    fh.write('HNETFILTER = "gunzip -c < $.gz"\n')
     fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
     fh.write('RAWMITFORMAT = T\n')
     fh.write('HPARM: TARGETKIND = MFCC_0_D_A_Z\n')
@@ -325,7 +325,7 @@ def create_num_lattices(model, output_dir, lm, dict, word_mlf):
     hlrescore_config = '%s/hlrescore.config' %output_dir
     fh = open(hlrescore_config, 'w')
     #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
-    fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+    fh.write('HNETFILTER = "gunzip -c < $.gz"\n')
     fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
     fh.write('RAWMITFORMAT = T\n')
     fh.write('HLRESCORE: FIXBADLATS = TRUE\n')
@@ -375,7 +375,7 @@ def add_lm_lattices(model, lattice_dir, output_dir, dict, lm):
     hlrescore_config = '%s/hlrescore.config' %output_dir
     fh = open(hlrescore_config, 'w')
     #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
-    fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+    fh.write('HNETFILTER = "gunzip -c < $.gz"\n')
     fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
     fh.write('RAWMITFORMAT = T\n')
     fh.write('HLRESCORE: FIXBADLATS = TRUE\n')
@@ -442,7 +442,7 @@ def run_iter(model, model_dir, num_lattice_dir, den_lattice_dir, root_dir, model
     hmmirest_config = '%s/hmmirest.config' %output_dir
     fh = open(hmmirest_config, 'w')
     #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
-    fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+    fh.write('HNETFILTER = "gunzip -c < $.gz"\n')
     fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
     fh.write('RAWMITFORMAT = T\n')
     fh.write('HPARM: TARGETKIND = MFCC_0_D_A_Z\n')

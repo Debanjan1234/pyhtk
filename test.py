@@ -134,9 +134,9 @@ class Decoder:
         if self.decode_func == 'hvite':
             fh.write('FORCECXTEXP = T\n')
             fh.write('ALLOWXWRDEXP = T\n')
-        elif self.decode_func == 'hdecode'):
+        elif self.decode_func == 'hdecode':
             #fh.write('HLANGMODFILTER = "gunzip -c $.gz"\n')
-            fh.write('HNETFILTER = "gunzip -c < $.gz\n')
+            fh.write('HNETFILTER = "gunzip -c < $.gz"\n')
             fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
             fh.write('RAWMITFORMAT = T\n')
             fh.write('HPARM: TARGETKIND = MFCC_0_D_A_Z\n')
