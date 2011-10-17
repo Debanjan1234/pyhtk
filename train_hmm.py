@@ -350,7 +350,7 @@ def tie_states_search(model, output_dir, model_dir, mono_list, tri_list, tied_li
         fh.write('TR 0\n')
         fh.write('%s\n' %open(model.tree_questions).read())
         fh.write('TR 12\n')
-        for p in phones:
+        for p in non_sp_phones:
             for s in range(1, model.states+1)[1:-1]:
                 fh.write('TB %d "ST_%s_%d_" {(%s,*-%s+*,%s+*,*-%s).state[%d]}\n' %(tb,p,s,p,p,p,p,s))
         fh.write('TR 1\n')
