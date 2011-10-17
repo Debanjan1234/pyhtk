@@ -172,8 +172,6 @@ def prune_lattices(model, lattice_dir, output_dir, dict):
     fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
     fh.write('RAWMITFORMAT = T\n')
     fh.write('HLRESCORE: FIXBADLATS = TRUE\n')
-    fh.write('HLRESCORE: ENDWORD = </s>\n')
-    fh.write('HLRESCORE: STARTWORD = <s>\n')
     fh.write('HLRESCORE: STARTWORD = <s>\n')
     fh.write('HLRESCORE: ENDWORD = </s>\n')
     fh.close()
@@ -331,8 +329,6 @@ def create_num_lattices(model, output_dir, lm, dict, word_mlf):
     fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
     fh.write('RAWMITFORMAT = T\n')
     fh.write('HLRESCORE: FIXBADLATS = TRUE\n')
-    fh.write('HLRESCORE: ENDWORD = </s>\n')
-    fh.write('HLRESCORE: STARTWORD = <s>\n')
     fh.write('HLRESCORE: STARTWORD = <s>\n')
     fh.write('HLRESCORE: ENDWORD = </s>\n')
     fh.close()
@@ -383,8 +379,6 @@ def add_lm_lattices(model, lattice_dir, output_dir, dict, lm):
     fh.write('HNETOFILTER = "gzip -c > $.gz"\n')
     fh.write('RAWMITFORMAT = T\n')
     fh.write('HLRESCORE: FIXBADLATS = TRUE\n')
-    fh.write('HLRESCORE: ENDWORD = </s>\n')
-    fh.write('HLRESCORE: STARTWORD = <s>\n')
     fh.write('HLRESCORE: STARTWORD = <s>\n')
     fh.write('HLRESCORE: ENDWORD = </s>\n')
     fh.close()
@@ -435,7 +429,7 @@ def add_lm_lattices(model, lattice_dir, output_dir, dict, lm):
         util.run_parallel(cmds_file, model.jobs, output_dir)
 
 
-def run_iter(model, model_dir, num_lattice_dir, den_lattice_dir, root_dir, model_list, mfc_list, config, mix_size, iter):
+def run_iter(model, model_dir, num_lattice_dir, den_lattice_dir, root_dir, model_list, mfc_list, mix_size, iter):
     """
     Run an iteration of modified Baum-Welch training using HMMIRest
     """
