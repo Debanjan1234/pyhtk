@@ -53,6 +53,7 @@ class Model:
             self.train_pipeline['flat_start'] = int(config.get('train_pipeline', 'flat_start'))
             self.train_pipeline['mono_to_tri'] = int(config.get('train_pipeline', 'mono_to_tri'))
             self.train_pipeline['mixup_tri'] = int(config.get('train_pipeline', 'mixup_tri'))
+            self.train_pipeline['diag'] = int(config.get('train_pipeline', 'diag'))
             self.train_pipeline['mmi'] = int(config.get('train_pipeline', 'mmi'))
 
         ## Create experiment directory and a new log file
@@ -173,14 +174,14 @@ class Model:
 
             import train_hmm
             for iter in range(1, self.initial_mono_iters+1):
-                hmm_dir, k, L = train_hmm.run_iter(self, self.mono_root, hmm_dir, self.phone_mlf, self.phone_list, 1, iter)
+                hmm_dir, k, L = train_hmm.run_iter(self, self.mono_root, hmm_dir, self.phone_mlf, self.phone_list, 1, iter, '')
                 log(self.logfh, 'ran an iteration of BW in [%s] lik/fr [%1.4f]' %(hmm_dir, L))
             
             align_dir = train_hmm.align(self, self.mono_root, self.mfc_list, hmm_dir, self.word_mlf, self.phone_mlf, self.phone_list, self.train_dict)
             log(self.logfh, 'aligned with model in [%s], wrote phone mlf [%s]' %(hmm_dir, self.phone_mlf))
 
             for iter in range(self.initial_mono_iters+1, self.initial_mono_iters+1+self.mono_iters):
-                hmm_dir, k, L = train_hmm.run_iter(self, self.mono_root, hmm_dir, self.phone_mlf, self.phone_list, 1, iter)
+                hmm_dir, k, L = train_hmm.run_iter(self, self.mono_root, hmm_dir, self.phone_mlf, self.phone_list, 1, iter, '')
                 log(self.logfh, 'ran an iteration of BW in [%s] lik/fr [%1.4f]' %(hmm_dir, L))
 
             log(self.logfh, 'FLAT START finished')
@@ -194,7 +195,7 @@ class Model:
             log(self.logfh, 'created triphone mlf [%s]' %self.tri_mlf)
             
             for iter in range(1, self.initial_tri_iters+1):
-                hmm_dir, k, L = train_hmm.run_iter(self, self.xword_root, hmm_dir, self.tri_mlf, self.tri_list, 1, iter)
+                hmm_dir, k, L = train_hmm.run_iter(self, self.xword_root, hmm_dir, self.tri_mlf, self.tri_list, 1, iter, '')
                 log(self.logfh, 'ran an iteration of BW in [%s] lik/fr [%1.4f]' %(hmm_dir, L))
             
             xword_tie_dir = '%s/HMM-%d-%d' %(self.xword_root, 1, self.initial_tri_iters+1)
@@ -203,7 +204,7 @@ class Model:
 
             hmm_dir = '%s/HMM-%d-%d' %(self.xword_root, 1, 2)
             for iter in range(self.initial_tri_iters+2, self.initial_tri_iters+1+self.tri_iters+1):
-                hmm_dir, k, L = train_hmm.run_iter(self, self.xword_root, hmm_dir, self.tri_mlf, self.tied_list, 1, iter)
+                hmm_dir, k, L = train_hmm.run_iter(self, self.xword_root, hmm_dir, self.tri_mlf, self.tied_list, 1, iter, '')
                 log(self.logfh, 'ran an iteration of BW in [%s] lik/fr [%1.4f]' %(hmm_dir, L))
 
             log(self.logfh, 'MONO TO TRI finished')
@@ -220,9 +221,30 @@ class Model:
                 hmm_dir = train_hmm.mixup(self, self.xword_root, hmm_dir, self.tied_list, mix_size)
                 log(self.logfh, 'mixed up to [%d] in [%s]' %(mix_size, hmm_dir))
                 for iter in range(1, self.tri_iters_per_split+1):
-                    hmm_dir, k, L = train_hmm.run_iter(self, self.xword_root, hmm_dir, self.tri_mlf, self.tied_list, mix_size, iter)
+                    hmm_dir, k, L = train_hmm.run_iter(self, self.xword_root, hmm_dir, self.tri_mlf, self.tied_list, mix_size, iter, '')
                     log(self.logfh, 'ran an iteration of BW in [%s] lik/fr [%1.4f]' %(hmm_dir, L))
             log(self.logfh, 'MIXUP TRI finished')
+
+
+
+        if self.train_pipeline['diag']:
+            log(self.logfh, 'DIAG started')
+            import train_hmm
+            diag_dir = '%s/Diag' %self.exp
+            util.create_new_dir(diag_dir)
+
+            num_gaussians = self.tri_mixup_schedule[-1]
+            iter_num = self.tri_iters_per_split
+            seed_dir = '%s/HMM-%d-%d' %(self.xword_root, num_gaussians, iter_num)
+
+            hmm_dir, L = train_hmm.diagonalize(self, diag_dir, seed_dir, self.tied_list, self.tri_mlf, num_gaussians)
+            log(self.logfh, 'ran diag in [%s] lik/fr [%1.4f]' %(hmm_dir, L))
+            
+            for iter in range(1, self.tri_iters_per_split+1):
+                hmm_dir, k, L = train_hmm.run_iter(self, diag_dir, hmm_dir, self.tri_mlf, self.tied_list, 8, iter, '')
+                log(self.logfh, 'ran an iteration of BW in [%s] lik/fr [%1.4f]' %(hmm_dir, L))
+
+            log(self.logfh, 'DIAG finished')
             
         if self.train_pipeline['mmi']:
             log(self.logfh, 'DISCRIM started')

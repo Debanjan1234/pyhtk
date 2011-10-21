@@ -8,7 +8,7 @@ import util
 HEREST_CMD = 'HERest'
 #HEREST_CMD = '/u/arlo/bin/fast_htk/v0/HERest'
 
-def run_iter(model, root_dir, prev_dir, mlf_file, model_list, mix_size, iter):
+def run_iter(model, root_dir, prev_dir, mlf_file, model_list, mix_size, iter, extra):
     """
     Run an iteration of Baum-Welch training using HERest
     """
@@ -25,13 +25,13 @@ def run_iter(model, root_dir, prev_dir, mlf_file, model_list, mix_size, iter):
     prune_inc = 150
     prune_limit = 2000
 
-    def herest(input, split_num):
+    def herest(input, split_num, extra):
         try: log_id = os.path.basename(input).split('.')[2]
         except: log_id = 'acc'
-        cmd  = '%s -A -T 1 -m %d' %(HEREST_CMD, min_train_examples)
+        cmd  = '%s -D -A -T 1 -m %d' %(HEREST_CMD, min_train_examples)
         cmd += ' -t %d %d %d' %(prune_thresh, prune_inc, prune_limit)
         cmd += ' -s %s/stats' %output_dir
-        cmd += ' -C %s' %model.mfc_config
+        cmd += ' -C %s%s' %(model.mfc_config, extra)
         cmd += ' -I %s' %mlf_file
         cmd += ' -H %s/MMF' %prev_dir
         cmd += ' -p %d' %split_num
@@ -50,7 +50,7 @@ def run_iter(model, root_dir, prev_dir, mlf_file, model_list, mix_size, iter):
     split_num = 0
     for input in inputs:
         split_num += 1
-        cmds.append(herest(input, split_num))
+        cmds.append(herest(input, split_num, extra))
 
     ## Non-parallel case
     if model.local == 1:
@@ -71,7 +71,7 @@ def run_iter(model, root_dir, prev_dir, mlf_file, model_list, mix_size, iter):
     os.system('ls %s/HER*.acc > %s' %(output_dir, acc_file))
 
     ## Combine acc files into a new HMM
-    cmd = herest(acc_file, 0)
+    cmd = herest(acc_file, 0, extra)
     cmd = cmd.split('>>')[0]
     cmd += ' >> %s/herest.log' %output_dir
     if model.local == 1: os.system(cmd)
@@ -82,7 +82,7 @@ def run_iter(model, root_dir, prev_dir, mlf_file, model_list, mix_size, iter):
 
     ## Get a few stats
     num_models = int(os.popen('grep "<MEAN>" %s/MMF -c' %output_dir).read().strip())
-    likelihood = float(os.popen('tail %s/herest.log | grep aver' %output_dir).read().strip().split()[-1])
+    likelihood = float(os.popen('cat %s/herest.log | grep aver' %output_dir).read().strip().split()[-1])
 
     return output_dir, num_models, likelihood
 
@@ -391,3 +391,38 @@ def tie_states_search(model, output_dir, model_dir, mono_list, tri_list, tied_li
             sys.exit()
 
     return output_dir
+
+def diagonalize(model, output_dir, model_dir, model_list, mlf_file, mix_size):
+    """
+    Diagonalize output distributions
+    """
+
+    diag_config = '%s/config.diag' %output_dir
+    global_class = '%s/global' %output_dir
+
+    fh = open(diag_config, 'w')
+    fh.write('HADAPT:TRANSKIND = SEMIT\n')
+    fh.write('HADAPT:USEBIAS = FALSE\n')
+    fh.write('HADAPT:BASECLASS = global\n')
+    fh.write('HADAPT:SPLITTHRESH = 0.0\n')
+    fh.write('HADAPT:MAXXFORMITER = 100\n')
+    fh.write('HADAPT:MAXSEMITIEDITER = 20\n')
+    fh.write('HADAPT:TRACE = 61\n')
+    fh.write('HMODEL:TRACE = 512\n')
+    fh.write('HADAPT: SEMITIED2INPUTXFORM = TRUE\n')
+    fh.close()
+
+    max_mix = 2 * mix_size
+    fh = open(global_class, 'w')
+    fh.write('~b "global"\n')
+    fh.write('<MMFIDMASK> *\n')
+    fh.write('<PARAMETERS> MIXBASE\n')
+    fh.write('<NUMCLASSES> 1\n')
+    fh.write('<CLASS> 1 {*.state[2-4].mix[1-%d]}\n' %max_mix)
+    fh.close()
+
+    extra = ' -C %s -J %s -K %s/HMM-%d-0 -u stw' %(diag_config, output_dir, output_dir, mix_size)
+
+    hmm_dir, k, likelihood = run_iter(model, output_dir, model_dir, mlf_file, model_list, mix_size, 0, extra)
+
+    return hmm_dir, likelihood
