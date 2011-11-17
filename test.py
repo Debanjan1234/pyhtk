@@ -43,14 +43,16 @@ class Decoder:
 
         #self.lm = '/u/dgillick/workspace/hmm/wsj0/wdnet_bigram'
         self.lm = '%s/lm' %model.exp
+        #self.lm = '%s/bcb05cnp' %model.common
 
         #self.dict = model.htk_dict
         self.dict = '%s/decode_dict' %model.exp
-        #self.dict = '%s/wsj_dict_5k %model.common
+        #self.dict = '%s/wsj_dict_5k' %model.common
+        #self.dict = '%s/wsj_dict_5k.hdecode' %model.common
         
         self.decode_func = 'hdecode'
        
-    def test(self, gaussians=1, iter=8, mmi=False, diag=False, output_dir=None):
+    def test(self, gaussians=1, iter=8, mmi=False, diag=False, xword_id='', output_dir=None):
 
         ## Copy config file to the experiment dir
         config_output = '%s/config' %self.exp
@@ -70,19 +72,19 @@ class Decoder:
             num_utts, words = dict_and_lm.make_mlf_from_transcripts(model, self.dict, self.setup, self.data, self.word_mlf, self.mfc_list, skip_oov=True)
             log(self.logfh, 'wrote word mlf [%d utts] [%s]' %(num_utts, self.word_mlf))
 
-            self.decode(model, self.mfc_list, self.word_mlf, self.lm, gaussians, iter, mmi, diag, output_dir)
+            self.decode(model, self.mfc_list, self.word_mlf, self.lm, gaussians, iter, mmi, diag, xword_id, output_dir)
             total_time = time.time() - start_time
             log(self.logfh, 'TESTING finished; secs elapsed [%1.2f]' %total_time)
 
         
-    def decode(self, model, mfc_list, gold_mlf, lm_file, gaussians, iter, mmi=False, diag=False, output_dir=None):
+    def decode(self, model, mfc_list, gold_mlf, lm_file, gaussians, iter, mmi=False, diag=False, xword_id='', output_dir=None):
 
         if mmi:
             model_file = '%s/MMI/Models/HMMI-%d-%d/MMF' %(model.exp, gaussians, iter)
         elif diag:
             model_file = '%s/Diag/HMM-%d-%d/MMF' %(model.exp, gaussians, iter)
         else:
-            model_file = '%s/Xword/HMM-%d-%d/MMF' %(model.exp, gaussians, iter)
+            model_file = '%s/Xword%s/HMM-%d-%d/MMF' %(model.exp, xword_id, gaussians, iter)
         model_list = '%s/tied.list' %model.exp
 
         if not output_dir: output_dir = '%s/decode' %self.exp
@@ -205,6 +207,9 @@ if __name__ == '__main__':
                        help='use MMI model')
     parser.add_option('-D', '--diag', dest='diag', default=False, action='store_true',
                       help='use Diag model')
+    parser.add_option('-x', '--xword', dest='xword_id', type=str, default='',
+                      help='xword id')
+
     (options, args) = parser.parse_args()
 
     if len(args) < 2:
@@ -225,5 +230,5 @@ if __name__ == '__main__':
 
     if options.njobs > 0: decoder.jobs = options.njobs
     output_dir = '%s/decode-%s' %(decoder.exp, options.exp_id)
-    decoder.test(options.gaussians, options.iter, options.mmi, options.diag, output_dir)
+    decoder.test(options.gaussians, options.iter, options.mmi, options.diag, options.xword_id, output_dir)
 

@@ -78,7 +78,8 @@ def run_iter(model, root_dir, prev_dir, mlf_file, model_list, mix_size, iter, ex
     else: util.run(cmd, output_dir)
 
     ## Clean up
-    #os.system('rm -f %s/mfc.list.* %s/HER*.acc' %(output_dir, output_dir))
+    os.system('rm -f %s/mfc.list.* %s/HER*.acc' %(output_dir, output_dir))
+    os.system('bzip2 %s/herest.*.log %s/run-command*.log' %(output_dir, output_dir))
 
     ## Get a few stats
     num_models = int(os.popen('grep "<MEAN>" %s/MMF -c' %output_dir).read().strip())
@@ -86,7 +87,7 @@ def run_iter(model, root_dir, prev_dir, mlf_file, model_list, mix_size, iter, ex
 
     return output_dir, num_models, likelihood
 
-def mixup(model, root_dir, prev_dir, model_list, mix_size):
+def mixup(model, root_dir, prev_dir, model_list, mix_size, estimateVarFloor=0):
     """
     Run HHEd to initialize a mixup to mix_size gaussians
     """
@@ -97,12 +98,18 @@ def mixup(model, root_dir, prev_dir, model_list, mix_size):
     ## Make the hed script
     mix_hed = '%s/mix_%d.hed' %(output_dir, mix_size)
     fh = open(mix_hed, 'w')
+
+    if estimateVarFloor:
+            fh.write('LS %s/stats\n' %prev_dir)
+            fh.write('FA 0.1\n')
+            
+    fh.write('MU %d {(sil,sp).state[2-%d].mix}\n' %(2*mix_size,model.states-1))
     fh.write('MU %d {*.state[2-%d].mix}\n' %(mix_size, model.states-1))
     fh.close()
 
     hhed_log = '%s/hhed_mix.log' %output_dir
 
-    cmd  = 'HHEd -H %s/MMF -M %s' %(prev_dir, output_dir)
+    cmd  = 'HHEd -A -D -T 1 -H %s/MMF -M %s' %(prev_dir, output_dir)
     cmd += ' %s %s > %s' %(mix_hed, model_list, hhed_log)
     if model.local == 1: os.system(cmd)
     else: util.run(cmd, output_dir)
@@ -110,7 +117,37 @@ def mixup(model, root_dir, prev_dir, model_list, mix_size):
     return output_dir
 
 
-def align(model, root_dir, mfc_list, model_dir, word_mlf, new_mlf, model_list, dict): 
+def mixdown_mono(model, root_dir, prev_dir, phone_list):
+    """
+    Run HHEd to mixdown monophones
+    """
+
+    output_dir = '%s/HMM-1-0' %root_dir
+    util.create_new_dir(output_dir)
+
+    ## Create the full list of possible triphones
+    phones = open(phone_list).read().splitlines()
+    non_sil_phones = [p for p in phones if p not in ['sp', 'sil']]
+
+    ## Make the hed script
+    mixdown_hed = '%s/mix_down.hed' %output_dir
+    fh = open(mixdown_hed, 'w')
+    fh.write('MD 12 {(sil,sp).state[2-%d].mix}\n' %(model.states-1))
+    for phone in non_sil_phones:
+        fh.write('MD 1 {%s.state[2-%d].mix}\n' %(phone, model.states-1))
+    fh.close()
+
+    hhed_log = '%s/hhed_mixdown.log' %output_dir
+
+    cmd  = 'HHEd -A -D -T 1 -H %s/MMF -M %s' %(prev_dir, output_dir)
+    cmd += ' %s %s > %s' %(mixdown_hed, phone_list, hhed_log)
+    if model.local == 1: os.system(cmd)
+    else: util.run(cmd, output_dir)
+
+    return output_dir
+
+
+def align(model, root_dir, mfc_list, model_dir, word_mlf, new_mlf, model_list, dict, align_config): 
     """
     Create a new alignment based on a model and the word alignment with HVite
     """
@@ -129,13 +166,13 @@ def align(model, root_dir, mfc_list, model_dir, word_mlf, new_mlf, model_list, d
         #-o SWT 
         cmd  = 'HVite -D -A -T 1 -b silence -a -m -y lab '
         cmd += '-t %d' %prune_thresh
-        cmd += ' -C %s' %model.mfc_config
+        cmd += ' -C %s' %align_config
         cmd += ' -H %s/MMF' %model_dir
         cmd += ' -i %s' %output
         cmd += ' -I %s' %word_mlf
         cmd += ' -S %s' %input
         cmd += ' %s %s' %(dict, model_list)
-        #cmd += ' %s %s >> %s/hvite.log' %(dict, model_list, output_dir)
+        cmd += ' >> %s.hvite.log' %output
         return cmd
 
     ## Split up MFC list with unix split
@@ -170,7 +207,9 @@ def align(model, root_dir, mfc_list, model_dir, word_mlf, new_mlf, model_list, d
     fh.write('ME sil sil sil\n')
     fh.write('ME sp sil sil\n')
     fh.close()
+
     cmd = 'HLEd -D -A -T 1 -i %s %s %s >> %s/hled.log' %(new_mlf, merge_sil, ' '.join(outputs), output_dir)
+            
     if model.local == 1: os.system(cmd)
     else: util.run(cmd, output_dir)
 
@@ -192,8 +231,20 @@ def align(model, root_dir, mfc_list, model_dir, word_mlf, new_mlf, model_list, d
     util.log_write(model.logfh, 'removed alignments [%d]' %bad_count)
 
     ## Clean up
-    #os.system('rm -f %s/mfc.list.* %s/align.output.*' %(output_dir, output_dir))
+    os.system('rm -f %s/mfc.list.* %s/align.output.*' %(output_dir, output_dir))
     return output_dir
+
+def map_tri_to_mono(model, root_dir, tri_mlf, mono_mlf):
+    """
+    Convert a triphone mlf to monophones to remove artifacts from state tying
+    """
+    
+    cmd = 'HLEd -b -m -i %s /dev/null %s' %(mono_mlf, tri_mlf)
+
+    if model.local == 1: os.system(cmd)
+    else: util.run(cmd, '%s' %root_dir)
+
+    return mono_mlf
 
 def mono_to_tri(model, root_dir, mono_dir, phone_mlf, tri_mlf, mono_list, tri_list):
     """
@@ -223,12 +274,43 @@ def mono_to_tri(model, root_dir, mono_dir, phone_mlf, tri_mlf, mono_list, tri_li
     fh.close()
 
     ## Create a new alignment in tri_mlf and output used triphones to tri_list
-    cmd  = 'HLEd -A -T 1 -n %s' %tri_list
+    cmd  = 'HLEd -A -n %s' %tri_list
     cmd += ' -i %s' %tri_mlf
     cmd += ' %s %s > %s' %(mktri_led, phone_mlf, hled_log)
 
     if model.local: os.system(cmd)
     else: util.run(cmd, output_dir)
+
+    ## Create an HHEd script to clone monophones to triphones
+    fh = open(mktri_hed, 'w')
+    for line in open(mono_list):
+        mono = line.strip()
+        fh.write('TI T_%s {(%s).transP}\n' %(mono, mono))
+    fh.write('CL %s\n' %tri_list)
+    fh.close()
+
+    ## Run HHEd to clone monophones and tie transition matricies
+    cmd  = 'HHEd -A -T 1 -H %s/MMF' %mono_dir
+    cmd += ' -M %s' %output_dir
+    cmd += ' %s %s > %s' %(mktri_hed, mono_list, hhed_log)
+
+    if model.local: os.system(cmd)
+    else: util.run(cmd, output_dir)
+
+    return output_dir
+
+def init_tri_from_mono(model, root_dir, mono_dir, tri_mlf, mono_list, tri_list):
+    """
+    Convert a monophone model and triphone mlf to triphones
+    """
+
+    ## Create the xword directory and the current output directory
+    output_dir = '%s/HMM-0-0' %root_dir
+    util.create_new_dir(root_dir)
+    util.create_new_dir(output_dir)
+
+    mktri_hed = '%s/mktri.hed' %output_dir
+    hhed_log = '%s/hhed_clone_mono.log' %output_dir
 
     ## Create an HHEd script to clone monophones to triphones
     fh = open(mktri_hed, 'w')
@@ -368,7 +450,8 @@ def tie_states_search(model, output_dir, model_dir, mono_list, tri_list, tied_li
         else: util.run(cmd, output_dir)
         num_states = int(os.popen('grep -c "<MEAN>" %s/MMF' %output_dir).read().strip())
 
-        if num_states == model.triphone_states:
+        
+        if abs(float(num_states - model.triphone_states)/model.triphone_states) <= 0.01:
             util.log_write(model.logfh, ' current states [%d] tb [%1.2f]' %(num_states, tb))
             break
         
@@ -396,6 +479,7 @@ def diagonalize(model, output_dir, model_dir, model_list, mlf_file, mix_size):
     """
     Diagonalize output distributions
     """
+    util.create_new_dir(output_dir)
 
     diag_config = '%s/config.diag' %output_dir
     global_class = '%s/global' %output_dir
@@ -426,3 +510,18 @@ def diagonalize(model, output_dir, model_dir, model_list, mlf_file, mix_size):
     hmm_dir, k, likelihood = run_iter(model, output_dir, model_dir, mlf_file, model_list, mix_size, 0, extra)
 
     return hmm_dir, likelihood
+
+def make_hvite_xword_config(model, config_file, target_kind):
+    """
+    Make a xword config file for hvite
+    """
+
+    fh = open(config_file, 'w')
+    fh.write('HPARM: TARGETKIND = %s\n' %target_kind)
+    fh.write('FORCECXTEXP = T\n')
+    fh.write('ALLOWXWRDEXP = T\n')
+    fh.close()
+
+    return config_file
+
+    
